@@ -19,5 +19,6 @@ def reload_modules():
     
 
 def startup():
-    from maya import cmds
-    cmds.optionVar(stringValue="")
+    # from maya import cmds
+    # cmds.optionVar(query="") # example of finding a maya optionvar
+    pass
