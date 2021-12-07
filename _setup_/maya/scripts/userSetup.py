@@ -18,5 +18,5 @@ _tool_name_site_dir_setup()
 try:
     import tool_name
     tool_name.startup()
-except StandardError as e:
+except Exception as e:
     print(e)
