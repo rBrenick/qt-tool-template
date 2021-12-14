@@ -2,20 +2,16 @@ import os
 import sys
 from functools import partial
 
-# try:
-#     from Qt import QtCore, QtWidgets, QtGui
-# except ImportError:
 from PySide2 import QtCore, QtWidgets, QtGui
-from PySide2 import QtUiTools
-from PySide2 import QtWidgets
 from shiboken2 import wrapInstance
 
 if sys.version_info.major >= 3:
     long = int
-    
+
 active_dcc_is_maya = "maya" in os.path.basename(sys.executable)
 
 resources_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "resources")
+
 
 def get_app_window():
     app_window = None
@@ -23,24 +19,25 @@ def get_app_window():
         from maya import OpenMayaUI as omui
         maya_main_window_ptr = omui.MQtUtil().mainWindow()
         app_window = wrapInstance(long(maya_main_window_ptr), QtWidgets.QMainWindow)
-        
+
     return app_window
 
 
 class CoreToolWindow(QtWidgets.QMainWindow):
-    def __init__(self, parent=get_app_window()):
+    def __init__(self, parent=None):
+        if parent is None:
+            parent = get_app_window()
         super(CoreToolWindow, self).__init__(parent)
-        
+
         self.ui = None
         self.setWindowTitle(self.__class__.__name__)
-    
+
     def main(self, *args, **kwargs):
         self.show()
-    
-    
+
     #########################################################
     # convenience functions to make a simple button layout
-    
+
     def ensure_main_layout(self):
         if self.ui is None:
             main_widget = QtWidgets.QWidget()
@@ -48,25 +45,25 @@ class CoreToolWindow(QtWidgets.QMainWindow):
             main_widget.setLayout(main_layout)
             self.ui = main_widget
             self.setCentralWidget(main_widget)
-            
+
     def add_button(self, text, command, clicked_args=None):
         self.ensure_main_layout()
-        
+
         main_layout = self.ui.layout()
-        
+
         btn = QtWidgets.QPushButton(text)
         btn.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         main_layout.addWidget(btn)
-        
+
         if clicked_args:
             btn.clicked.connect(partial(command, *clicked_args))
         else:
             btn.clicked.connect(command)
-        
+
 
 class WindowCache:
     window_instances = {}
-      
+
 
 if active_dcc_is_maya:
 
@@ -74,17 +71,20 @@ if active_dcc_is_maya:
     from maya import OpenMayaUI as omui
     from maya import cmds
 
+
     class ToolWindow(MayaQWidgetDockableMixin, CoreToolWindow):
-        def __init__(self, parent=get_app_window()):
+        def __init__(self, parent=None):
+            if parent is None:
+                parent = get_app_window()
             super(ToolWindow, self).__init__(parent=parent)
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-            
+
             class_name = self.__class__.__name__
             self.setObjectName(class_name)
 
         def main(self, restore=False, refresh=False):
             object_name = self.objectName()
-            
+
             if refresh:
                 WindowCache.window_instances.pop(object_name, None)
 
@@ -113,7 +113,7 @@ if active_dcc_is_maya:
                 window_instance.show(dockable=True, height=600, width=480, uiScript=launch_ui_script)
 
             return window_instance
-        
+
 else:
     ToolWindow = CoreToolWindow
 
@@ -151,11 +151,13 @@ def build_menu_from_action_list(actions, menu=None, is_sub_menu=False):
                     if choice_key == item_to_check:
                         action.setChecked(True)
 
-                    action.triggered.connect(functools.partial(set_settings_value,
-                                                               settings_obj,
-                                                               settings_key,
-                                                               choice_key,
-                                                               on_trigger_command))
+                    action.triggered.connect(partial(
+                        set_settings_value,
+                        settings_obj,
+                        settings_key,
+                        choice_key,
+                        on_trigger_command
+                    ))
                     menu.addAction(action)
                     grp.addAction(action)
 
@@ -177,3 +179,7 @@ def build_menu_from_action_list(actions, menu=None, is_sub_menu=False):
     return menu
 
 
+def set_settings_value(settings_obj, key, value, post_set_command=None):
+    settings_obj.setValue(key, value)
+    if post_set_command:
+        post_set_command()
