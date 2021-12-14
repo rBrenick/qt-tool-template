@@ -4,6 +4,10 @@ from .ui_utils import QtCore, QtWidgets
 
 from . import tool_name_system
 
+standalone_app = None
+if not QtWidgets.QApplication.instance():
+    standalone_app = QtWidgets.QApplication(sys.argv)
+
         
 class ToolNameWindow(ui_utils.ToolWindow):
     def __init__(self):
@@ -17,13 +21,6 @@ class ToolNameWindow(ui_utils.ToolWindow):
 
 
 def main(refresh=False):
-    existing_app = QtWidgets.QApplication.instance()
-    
-    # if running in standalone, create app
-    standalone_app = None
-    if not existing_app:
-        standalone_app = QtWidgets.QApplication(sys.argv)
-    
     win = ToolNameWindow()
     win.main(refresh=refresh)
     
